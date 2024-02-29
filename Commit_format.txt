@@ -1,0 +1,7 @@
+For example, these keywords can be:
+Added: for newly added files
+Removed: for removed files
+Changed: for changes made to existing files
+Renamed: specify old and new name of the file
+
+Lastly, be specific about the changes, and avoid generic terms like “updated code”.
