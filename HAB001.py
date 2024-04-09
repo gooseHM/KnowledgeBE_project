@@ -5,6 +5,7 @@ from Storage import Storage
 from RepairWorkshop import Repair
 from Airlock import Airlock
 from LivingQuarters import LivingQuarters
+from LifeSupport import LifeSupport
 
 
 class Habitat(Base):                            # Consider using Geombase for building hab
@@ -24,7 +25,7 @@ class Habitat(Base):                            # Consider using Geombase for bu
     WindSpeed = Input(120)                      # [km/h] Wind speed to sustain
     AtmosphericDensity = Input(1.293)           # [kg/m^3] Atmospheric density of planet
 
-### Module List ###
+### Modules ###
 
     @Part
     def ScienceModule(self):
@@ -50,6 +51,10 @@ class Habitat(Base):                            # Consider using Geombase for bu
     def LivingQuarters(self):
         return LivingQuarters()
 
+    @Part
+    def LifeSupport(self):
+        return LifeSupport()
+
 ### Attributes ###
 
     @Attribute
@@ -60,7 +65,10 @@ class Habitat(Base):                            # Consider using Geombase for bu
         WorkVol = self.RepairWorkshop[0].WorkshopVolume
         AirVol = self.Airlock[0].get_airlock_volume
         LQVol = self.LivingQuarters.get_livquart_volume + self.LivingQuarters.BedVolume * self.NumberOfOccupants
-        TotalVolumeUsed = SciVol + CommsVol + StorVol + WorkVol + AirVol + LQVol
+        LSVol = self.LifeSupport.get_lifesup_volume
+
+        TotalVolumeUsed = SciVol + CommsVol + StorVol + WorkVol + AirVol + LQVol + LSVol
+
         return TotalVolumeUsed                  # [m^3] Hab volume used
 
     @Attribute
@@ -70,7 +78,10 @@ class Habitat(Base):                            # Consider using Geombase for bu
         WorkPow = self.RepairWorkshop[0].WorkshopPower * self.NumberOfWorkshops
         AirPow = self.Airlock[0].AirlockPower * self.NumberOfAirlocks
         LQPow = self.LivingQuarters.get_livquart_power
-        TotalPowerRequired = SciPow + CommsPow + WorkPow + AirPow + LQPow
+        LSPow = self.LifeSupport.get_lifesup_power
+
+        TotalPowerRequired = SciPow + CommsPow + WorkPow + AirPow + LQPow + LSPow
+
         return TotalPowerRequired               # [kW] Total power requirement of Hab
 
 
