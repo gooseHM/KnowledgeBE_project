@@ -1,4 +1,5 @@
 from parapy.core import *
+from parapy.geom import *
 from SciModule import Science
 from CommsModule import Communications
 from Storage import Storage
@@ -6,12 +7,15 @@ from RepairWorkshop import Repair
 from Airlock import Airlock
 from LivingQuarters import LivingQuarters
 from LifeSupport import LifeSupport
+import math as m
+import numpy as np
 
 
-class Habitat(Base):                            # Consider using Geombase for building hab
+class Habitat(GeomBase):                        # Consider using Geombase for building hab
 
     NumberOfOccupants = Input(1)                # Number of persons living in Hab
-    HabHeight = Input(20)                       # [m] Printable height of Hab
+    # HabHeight = Input(20)                       # [m] Printable height of Hab
+    NumberOfFloors = Input(3)                   # Number of floors in the Hab
 
     NumberOfScienceModules = Input(1)           # Number of Science Modules
     NumberOfWorkshops = Input(1)                # Number of Workshops
@@ -55,7 +59,66 @@ class Habitat(Base):                            # Consider using Geombase for bu
     def LifeSupport(self):
         return LifeSupport()
 
-### Attributes ###
+### Geometry ###
+
+    @Attribute
+    def radii(self):
+        x = np.linspace(4, 25, self.NumberOfFloors+2)
+        y = np.zeros(len(x))
+        for i in range(len(x)):
+            y[i] = m.sqrt(x[i])
+        return np.flip(y)
+
+    @Part
+    def hab_profiles(self):
+        return Circle(quantify=self.NumberOfFloors+2,
+                      radius=self.radii[child.index],
+                      position=translate(self.position
+                                         if child.index == 0
+                                         else child.previous.position, 'z', 3))
+
+    @Part
+    def inner_shell(self):
+        return LoftedSurface(profiles=self.hab_profiles)
+
+    @Part
+    def hab_floors(self):
+        return CircularFace(quantify=self.NumberOfFloors+2,
+                            radius=self.radii[child.index],
+                            position=translate(self.position
+                                               if child.index == 0
+                                               else child.previous.position, 'z', 3))
+
+    w_step = 1.5
+    l_step = 0.5
+    h_step = 0.5
+    t_step = 0.2
+    radius = 1
+
+    @Attribute
+    def angle_step(self):
+        # revolutions / Height difference in step
+        return (self.NumberOfFloors/3) * 2 * m.pi / (6*self.NumberOfFloors - 1)
+
+    @Part
+    def steps(self):
+        return Box(quantify=6*self.NumberOfFloors - 1,
+                   width=self.w_step,
+                   length=self.l_step,
+                   height=self.t_step,
+                   position=translate(rotate(self.position.translate('z', 3)
+                                             if child.index == 0
+                                             else child.previous.position, 'z', self.angle_step),
+                                      'z', self.h_step),
+                   )
+
+    @Part
+    def inner_column(self):
+        return Cylinder(radius=self.radius/2,
+                        height=(self.NumberOfFloors * 3) + 3,
+                        position=XOY.translate('z', 3))
+
+### Module Attributes ###
 
     @Attribute
     def get_tot_use_vol(self):
