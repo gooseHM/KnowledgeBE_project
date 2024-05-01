@@ -1,11 +1,12 @@
 from parapy.core import *
 from Power import Power
 from Water import Water
-from Heating import Heating
+from Temp_calc_module import Heating
 from Oxygen import Oxygen
 from Food import Food
-class LifeSupport(Base):
 
+class LifeSupport(Base):
+    A_vertical = Input()
 ### Modules ###
 
     @Part
@@ -18,7 +19,8 @@ class LifeSupport(Base):
 
     @Part
     def Heating(self):
-        return Heating()
+
+        return Heating(pass_down="A_vertical")
 
     @Part
     def Oxygen(self):

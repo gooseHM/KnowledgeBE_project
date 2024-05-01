@@ -34,6 +34,7 @@ class Habitat(GeomBase):
     WindSpeed = Input(120)                                                  # [km/h] Wind speed to sustain
     AtmosphericDensity = Input(1.293)                                       # [kg/m^3] Atmospheric density of planet
 
+
 # Modules #
 
     @Part
@@ -62,7 +63,7 @@ class Habitat(GeomBase):
 
     @Part
     def life_support(self):
-        return LifeSupport()
+        return LifeSupport(A_vertical=self.get_lat_surf_area)
 
 # Geometry #
 

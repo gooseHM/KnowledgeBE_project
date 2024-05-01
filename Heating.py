@@ -1,8 +1,9 @@
 from parapy.core import *
+#from Temp_calc_module import Thermal
 
+class rr(Base):
 
-class Heating(Base):
-    HeatingPower = Input(10)                             # [kW] Heating power input
+    HeatingPower = Thermal.Q_heat                           # [kW] Heating power input
     StorageCapacity = Input(5)                           # [kW] Heating power output
 
 
