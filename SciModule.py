@@ -2,19 +2,59 @@ from parapy.core import *
 
 
 class Science(Base):
-    NumberOfLabs = Input(3)                         # Number of lab equipment required
-    LabVolume = Input(1)                            # [m^3] Volume occupied by 1 lab equipment
-    LabPower = Input(10)                            # [kW] Power consumption of 1 lab equipment
+
+    NumberOfOccupants = Input()
+
+    @Attribute
+    def human_research_lab(self):
+        hrl_volume = 8                              # [m^3] Volume required for HRM lab
+        hrl_power = 5000                            # [W] Power required for HRM lab
+        return hrl_volume, hrl_power
+
+    @Attribute
+    def biology_lab(self):
+        bio_volume = 10                             # [m^3] Volume required for Bio lab
+        bio_power = 7500                            # [W] Power required for Bio lab
+        return bio_volume, bio_power
+
+    @Attribute
+    def physics_lab(self):
+        phy_volume = 16                             # [m^3] Volume required for Bio lab
+        phy_power = 2000                            # [W] Power required for Phy lab
+        return phy_volume, phy_power
+
+    @Attribute
+    def geology_lab(self):
+        geo_volume = 2                              # [m^3] Volume required for Bio lab
+        geo_power = 500                             # [W] Power required for Geo lab
+        return geo_volume, geo_power
 
     @Attribute
     def get_science_volume(self):
-        ScienceVolume = self.NumberOfLabs * self.LabVolume
-        return ScienceVolume
+        if self.min_occupants < 3:
+            ScienceVolume = self.human_research_lab[0] + self.biology_lab[0]
+            return ScienceVolume
+        else:
+            ScienceVolume = self.human_research_lab[0] + self.biology_lab[0] + \
+                            self.physics_lab[0] + self.geology_lab[0]
+            return ScienceVolume
 
     @Attribute
     def get_science_power(self):
-        SciencePower = self.NumberOfLabs * self.LabPower
-        return SciencePower
+        if self.min_occupants < 3:
+            SciencePower = self.human_research_lab[1] + self.biology_lab[1]
+            return SciencePower
+        else:
+            SciencePower = self.human_research_lab[1] + self.biology_lab[1] + \
+                            self.physics_lab[1] + self.geology_lab[1]
+            return SciencePower
+
+    @Attribute
+    def min_occupants(self):
+        if self.NumberOfOccupants < 1:
+            return 1
+        else:
+            return self.NumberOfOccupants
 
 
 if __name__ == '__main__':

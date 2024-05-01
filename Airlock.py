@@ -2,13 +2,19 @@ from parapy.core import *
 
 
 class Airlock(Base):
-    NumberOfEVASuits = Input(3)                         # Number of EVA suits required
-    AirlockVolume = Input(10)                            # [m^3] Airlock Volume
-    AirlockPower = Input(10)                            # [kW] Airlock Power
+    NumberOfEVASuits = Input(2)                         # Number of EVA suits required
+    EVASuitCapacity = Input(2)                          # Storage volume of 1 suit
+
+    @Attribute
+    def airlock_dims(self):
+        Length = 7
+        Width = 3
+        Height = 3
+        return Length, Width, Height
 
     @Attribute
     def get_airlock_volume(self):
-        AirlockVolume = self.AirlockVolume + self.NumberOfEVASuits
+        AirlockVolume = (self.Length*self.Width*self.Height) + (self.NumberOfEVASuits*self.EVASuitCapacity)
         return AirlockVolume
 
 

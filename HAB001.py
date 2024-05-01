@@ -21,8 +21,8 @@ class Habitat(GeomBase):
     NumberOfOccupants = Input(1)                                            # Number of persons living in Hab
     MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
     NumberOfFloors = Input(3)                                               # Number of floors in the Hab
+    HabThickness = Input(0.10)                                              # [m] Thickness to be sized by other modules
 
-    NumberOfScienceModules = Input(1)                                       # Number of Science Modules
     NumberOfWorkshops = Input(1)                                            # Number of Workshops
     NumberOfAirlocks = Input(1)                                             # Number of Airlocks
 
@@ -38,7 +38,7 @@ class Habitat(GeomBase):
 
     @Part
     def science_module(self):
-        return Science(quantify=self.NumberOfScienceModules)
+        return Science(pass_down="NumberOfOccupants")
 
     @Part
     def communications(self):
@@ -54,11 +54,11 @@ class Habitat(GeomBase):
 
     @Part
     def airlock(self):
-        return Airlock(quantify=self.NumberOfAirlocks)
+        return Airlock()
 
     @Part
     def living_quarters(self):
-        return LivingQuarters()
+        return LivingQuarters(pass_down="NumberOfOccupants")
 
     @Part
     def life_support(self):
@@ -90,23 +90,27 @@ class Habitat(GeomBase):
     def inner_volume(self):
         return SewnSolid(built_from=[self.inner_shell, self.hab_floors[0], self.hab_floors[-1]])
 
+    # @Part
+    # def test_circle(self):
+    #     return Circle(radius=5+self.HabThickness, position=XOY.translate('z', 3))
+
     @Part
     def outer_shell(self):
         return ScaledSurface(surface_in=self.inner_shell,
                              reference_point=Point(0, 0, 3),
-                             factor=1.1)
+                             factor=(self.HabThickness+5)/5)
 
     @Attribute
     def outer_floor_profile(self):
         return ScaledCurve(curve_in=self.hab_profiles[0],
                            reference_point=Point(0, 0, 3),
-                           factor=1.1)
+                           factor=(self.HabThickness+5)/5)
 
     @Attribute
     def outer_roof_profile(self):
         return ScaledCurve(curve_in=self.hab_profiles[-1],
                            reference_point=Point(0, 0, 3),
-                           factor=1.1)
+                           factor=(self.HabThickness+5)/5)
 
     @Part
     def outer_floor(self):
@@ -117,12 +121,29 @@ class Habitat(GeomBase):
         return Face(island=self.outer_roof_profile)
 
     @Part
-    def total_volume(self):
+    def main_hab(self):
         return SewnSolid(built_from=[self.outer_shell, self.outer_floor, self.outer_roof])
 
     @Part
+    def airlock_body(self):
+        return Box(length=self.airlock.airlock_dims[0],
+                   width=self.airlock.airlock_dims[1],
+                   height=self.airlock.airlock_dims[2],
+                   position=XOY.translate('x', -1.5, 'z', 3))
+
+    @Part
+    def filleted_airlock(self):
+        return FilletedSolid(built_from=self.airlock_body,
+                             radius=0.5,
+                             edge_table=self.airlock_body.top_face.edges)
+
+    @Part
     def printed_shell(self):
-        return SubtractedSolid(shape_in=self.total_volume, tool=self.inner_volume)
+        return FusedSolid(shape_in=self.filleted_airlock, tool=self.main_hab)
+
+    # @Part
+    # def printed_shell(self):
+    #     return SubtractedSolid(shape_in=self.full_hab, tool=self.inner_volume)
 
     @Part
     def hab_floors(self):
@@ -161,35 +182,49 @@ class Habitat(GeomBase):
                         height=(self.build_height * 3) + 3,
                         position=XOY.translate('z', 3))
 
-# Module Attributes #
+# Habitat Attributes #
+
+    @Attribute
+    def get_available_vol(self):
+        hab_vol = 0.
+        for i in range(len(self.radii)-1):
+            hab_vol = hab_vol + (1/3) * m.pi * 3 * \
+                      (self.radii[i+1]**2 + self.radii[i+1] * self.radii[i] + self.radii[i]**2)
+        return hab_vol
+
+    @Attribute
+    def get_lat_surf_area(self):
+        lat_surf_area = m.pi * self.radii[-1] ** 2
+        for i in range(len(self.radii)-1):
+            s = m.sqrt((self.radii[i] - self.radii[i+1])**2 + 3**2)
+            lat_surf_area = lat_surf_area + m.pi * (self.radii[i] + self.radii[i+1])*s
+        return lat_surf_area
+
+    @Attribute
+    def get_base_area(self):
+        base_area = m.pi * self.radii[0] ** 2
+        return base_area
 
     @Attribute
     def get_tot_use_vol(self):
-        science_volume = self.science_module[0].get_science_volume * self.NumberOfScienceModules
-        coms_volume = self.communications.get_comms_volume
         storage_volume = self.storage_module.get_storage_volume
         workshop_volume = self.repair_workshop[0].WorkshopVolume
-        airlock_volume = self.airlock[0].get_airlock_volume
-        living_quarters_volume = self.living_quarters.get_livquart_volume + self.living_quarters.BedVolume * \
-                                 self.NumberOfOccupants
+        airlock_volume = self.airlock.get_airlock_volume
         life_support_volume = self.life_support.get_lifesup_volume
 
-        total_used_volume = science_volume + coms_volume + storage_volume + workshop_volume + airlock_volume + \
-                            living_quarters_volume + life_support_volume
+        total_used_volume = self.science_module.get_science_volume + self.communications.get_comms_volume + storage_volume + workshop_volume + airlock_volume + \
+                            self.living_quarters.get_livquart_volume + life_support_volume
 
         return total_used_volume                                            # [m^3] Hab volume used
 
     @Attribute
     def get_tot_power_req(self):
-        science_power = self.science_module[0].get_science_power * self.NumberOfScienceModules
-        coms_power = self.communications.get_comms_power
         workshop_power = self.repair_workshop[0].WorkshopPower * self.NumberOfWorkshops
-        airlock_power = self.airlock[0].AirlockPower * self.NumberOfAirlocks
-        living_quarters_power = self.living_quarters.get_livquart_power
+        airlock_power = self.airlock.AirlockPower * self.NumberOfAirlocks
         life_support_power = self.life_support.get_lifesup_power
 
-        total_required_power = science_power + coms_power + workshop_power + airlock_power + \
-                               living_quarters_power + life_support_power
+        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power + airlock_power + \
+                               self.living_quarters.get_livquart_power + life_support_power
 
         return total_required_power                                         # [kW] Total power requirement of Hab
 
