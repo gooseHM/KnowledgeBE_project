@@ -9,13 +9,19 @@ class Airlock(Base):
     def airlock_dims(self):
         Length = 7
         Width = 3
-        Height = 3
+        Height = 3.5
         return Length, Width, Height
 
     @Attribute
     def get_airlock_volume(self):
-        AirlockVolume = (self.Length*self.Width*self.Height) + (self.NumberOfEVASuits*self.EVASuitCapacity)
+        AirlockVolume = (self.airlock_dims[0]*self.airlock_dims[1]*self.airlock_dims[2]) + \
+                        (self.NumberOfEVASuits*self.EVASuitCapacity)
         return AirlockVolume
+
+    @Attribute
+    def get_airlock_power(self):
+        AirlockPower = 4500                             # [kWh] Airlock power consumption
+        return AirlockPower
 
 
 if __name__ == '__main__':
