@@ -1,9 +1,10 @@
 import numpy as np
 from parapy.core import *
-from Matlab_files import me
+
 
 import matlab
 import matlab.engine
+from Matlab_files import me
 import openpyxl
 class Heating(Base):
     '''Define relevant properties for thermal model
@@ -12,11 +13,13 @@ class Heating(Base):
     todo fix Input dependencies'''
     me.addpath('Matlab_files')
 
+    specs = openpyxl.load_workbook('Habitat_Design_Specification.xlsx')
+    data = specs['Data']
+    inout = specs['Design Specification']
     #Inputs:
-    Body = Input('Mars')
+    Body = Input(inout['M4'].value)
     # Temperatures
     T_inside = Input(20)  # inside temp required
-
 
     # Geometry
     A_base = Input(50)  # Base Area in m2
@@ -31,18 +34,18 @@ class Heating(Base):
     def get_R_info(self):
         b = self.Body
         specs = openpyxl.load_workbook('Habitat_Design_Specification.xlsx')
-        Bi = specs['Environmental Input Data']
+        Bi = specs['Data']
 
         if b == 'Mars':
-            c = 3
+            c = 'B'
         elif b == 'Moon':
-            c = 4
+            c = 'C'
         else:
-            c = 5
+            c = 'G'
 
-        R_c = float(Bi.cell(row=4, column=c).value)
-        R_e = float(Bi.cell(row=5, column=c).value)
-        T_min = float(Bi.cell(row=2, column=c).value)  #Coldest temp on body
+        R_c = Bi[c + str(7)].value
+        R_e = Bi[c + str(8)].value
+        T_min = Bi[c + str(5)].value  #Coldest temp on body
         return R_c, R_e, T_min
 
     #'''Still have to pass the R_c and R_e in MAtlab'''
@@ -58,9 +61,6 @@ class Heating(Base):
     @Attribute
     def Q_heat(self):
         Q_heat = self.Thermal_model[0][0]
-        specs = openpyxl.load_workbook('Habitat_Design_Specification.xlsx')
-        Bi = specs['Environmental Input Data']
-        Bi.cell(row=6,column=1, value=Q_heat)
         return Q_heat
     @Attribute
     def t_min(self):

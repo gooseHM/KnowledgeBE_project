@@ -12,15 +12,25 @@ import math as m
 import numpy as np
 import warnings
 import os
+import openpyxl
 
 DIR = os.path.dirname(__file__)
+os.system("taskkill /f /im excel.exe")
 
 
 class Habitat(GeomBase):
     ''' Habitat class
     todo add base geometry
      for presentation purpose make sure only relevant geo is displayed '''
-    NumberOfOccupants = Input(1)                                            # Number of persons living in Hab
+    #Getting excel values
+    specs = openpyxl.load_workbook('Habitat_Design_Specification.xlsx')
+    data = specs['Data']
+    inout = specs['Design Specification']
+    # Inputs:
+    Body = Input(inout['M4'].value)
+
+        # Number of persons living in Hab
+    NumberOfOccupants = Input(1)
     MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
     NumberOfFloors = Input(3)                                               # Number of floors in the Hab
 
@@ -36,7 +46,10 @@ class Habitat(GeomBase):
 
 
 # Modules #
-
+    @Attribute
+    def safe_output(self):
+        self.inout['B6'] = self.life_support.Heating.t_min
+        return self.specs.save('Habitat_Design_Specification.xlsx')
     @Part
     def science_module(self):
         return Science(pass_down="NumberOfOccupants")
@@ -64,7 +77,7 @@ class Habitat(GeomBase):
     @Part
     def life_support(self):
         return LifeSupport(A_vertical=self.get_lat_surf_area, A_base=self.get_base_area,
-                           Q_sys=self.get_tot_power_req)
+                           Q_sys=self.get_tot_power_req,Body=self.Body)
 
 # Geometry #
 
@@ -141,7 +154,7 @@ class Habitat(GeomBase):
 
     @Part
     def hab_base(self):
-        return Cylinder(radius=self.radii[0]*(self.HabThickness+5)/5, height=0.5, position=XOY.translate('z', 2.5))
+        return Cylinder(radius=self.radii[0]*(self.life_support.Heating.t_min + 5)/5, height=0.5, position=XOY.translate('z', 2.5))
 
     @Part
     def hab_airlock(self):
@@ -231,7 +244,7 @@ class Habitat(GeomBase):
         workshop_power = self.repair_workshop[0].WorkshopPower * self.NumberOfWorkshops
         life_support_power = self.life_support.get_lifesup_power
 
-        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power + self.airlock.AirlockPower + \
+        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power + self.airlock.get_airlock_power + \
                                self.living_quarters.get_livquart_power + life_support_power
 
         return total_required_power                                         # [kW] Total power requirement of Hab

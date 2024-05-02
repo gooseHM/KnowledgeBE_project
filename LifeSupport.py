@@ -4,13 +4,14 @@ from Water import Water
 from Heating import Heating
 from Oxygen import Oxygen
 from Food import Food
-
+import sys
 class LifeSupport(Base):
     A_vertical = Input()
     A_base = Input()
     Q_sys = Input()
+    Body = Input()
 ### Modules ###
-
+    sys.path.append('livingsupport_parts')
     @Part
     def Power(self):
         return Power()
@@ -21,8 +22,7 @@ class LifeSupport(Base):
 
     @Part
     def Heating(self):
-
-        return Heating(pass_down="A_vertical, A_base, Q_sys")
+        return Heating(pass_down="A_vertical, A_base, Q_sys,Body")
 
     @Part
     def Oxygen(self):
