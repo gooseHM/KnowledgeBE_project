@@ -17,11 +17,12 @@ DIR = os.path.dirname(__file__)
 
 
 class Habitat(GeomBase):
-
+    ''' Habitat class
+    todo add base geometry
+     for presentation purpose make sure only relevant geo is displayed '''
     NumberOfOccupants = Input(1)                                            # Number of persons living in Hab
     MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
     NumberOfFloors = Input(3)                                               # Number of floors in the Hab
-    HabThickness = Input(0.10)                                              # [m] Thickness to be sized by other modules
 
     NumberOfWorkshops = Input(1)                                            # Number of Workshops
     NumberOfAirlocks = Input(1)                                             # Number of Airlocks
@@ -63,7 +64,8 @@ class Habitat(GeomBase):
 
     @Part
     def life_support(self):
-        return LifeSupport(A_vertical=self.get_lat_surf_area)
+        return LifeSupport(A_vertical=self.get_lat_surf_area, A_base=self.get_base_area,
+                           Q_sys=self.get_tot_power_req)
 
 # Geometry #
 
@@ -99,19 +101,19 @@ class Habitat(GeomBase):
     def outer_shell(self):
         return ScaledSurface(surface_in=self.inner_shell,
                              reference_point=Point(0, 0, 3),
-                             factor=(self.HabThickness+5)/5)
+                             factor=(self.life_support.Heating.t_min + 5)/5)
 
     @Attribute
     def outer_floor_profile(self):
         return ScaledCurve(curve_in=self.hab_profiles[0],
                            reference_point=Point(0, 0, 3),
-                           factor=(self.HabThickness+5)/5)
+                           factor=(self.life_support.Heating.t_min+5)/5)
 
     @Attribute
     def outer_roof_profile(self):
         return ScaledCurve(curve_in=self.hab_profiles[-1],
                            reference_point=Point(0, 0, 3),
-                           factor=(self.HabThickness+5)/5)
+                           factor=(self.life_support.Heating.t_min+5)/5)
 
     @Part
     def outer_floor(self):
@@ -221,10 +223,10 @@ class Habitat(GeomBase):
     @Attribute
     def get_tot_power_req(self):
         workshop_power = self.repair_workshop[0].WorkshopPower * self.NumberOfWorkshops
-        airlock_power = self.airlock.AirlockPower * self.NumberOfAirlocks
+        #airlock_power = self.airlock.AirlockPower * self.NumberOfAirlocks airlock_power +
         life_support_power = self.life_support.get_lifesup_power
 
-        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power + airlock_power + \
+        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power +  \
                                self.living_quarters.get_livquart_power + life_support_power
 
         return total_required_power                                         # [kW] Total power requirement of Hab
