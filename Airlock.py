@@ -24,6 +24,7 @@ class Airlock(Base):
         return AirlockPower
 
 
+
 if __name__ == '__main__':
     from parapy.gui import display
     obj = Airlock(label='Airlock')

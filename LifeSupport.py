@@ -1,12 +1,14 @@
 from parapy.core import *
 from Power import Power
 from Water import Water
-from Temp_calc_module import Heating
+from Heating import Heating
 from Oxygen import Oxygen
 from Food import Food
 
 class LifeSupport(Base):
     A_vertical = Input()
+    A_base = Input()
+    Q_sys = Input()
 ### Modules ###
 
     @Part
@@ -20,7 +22,7 @@ class LifeSupport(Base):
     @Part
     def Heating(self):
 
-        return Heating(pass_down="A_vertical")
+        return Heating(pass_down="A_vertical, A_base, Q_sys")
 
     @Part
     def Oxygen(self):
@@ -43,11 +45,11 @@ class LifeSupport(Base):
 
     @Attribute
     def get_lifesup_power(self):
-        HeatPow = self.Heating.HeatingPower
+        #HeatPow = self.Heating.Q_heat
         OxyPow = self.Oxygen.OxygenSysPower
         FarmPow = self.Food.get_farm_power
 
-        LifeSupportPower = HeatPow + OxyPow + FarmPow
+        LifeSupportPower = OxyPow + FarmPow
 
         return LifeSupportPower                 # [kW] Power used by life support
 
