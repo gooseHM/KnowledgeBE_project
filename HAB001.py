@@ -24,7 +24,6 @@ class Habitat(GeomBase):
     HabThickness = Input(0.10)                                              # [m] Thickness to be sized by other modules
 
     NumberOfWorkshops = Input(1)                                            # Number of Workshops
-    NumberOfAirlocks = Input(1)                                             # Number of Airlocks
 
 # Maybe an input can be a choice of environment rather
 # than individual environmental/atmospheric inputs
@@ -130,7 +129,7 @@ class Habitat(GeomBase):
         return Box(length=self.airlock.airlock_dims[0],
                    width=self.airlock.airlock_dims[1],
                    height=self.airlock.airlock_dims[2],
-                   position=XOY.translate('x', -1.5, 'z', 3))
+                   position=XOY.translate('x', -1.5, 'z', 2.5))
 
     @Part
     def filleted_airlock(self):
@@ -139,8 +138,16 @@ class Habitat(GeomBase):
                              edge_table=self.airlock_body.top_face.edges)
 
     @Part
-    def printed_shell(self):
+    def hab_base(self):
+        return Cylinder(radius=self.radii[0]*(self.HabThickness+5)/5, height=0.5, position=XOY.translate('z', 2.5))
+
+    @Part
+    def hab_airlock(self):
         return FusedSolid(shape_in=self.filleted_airlock, tool=self.main_hab)
+
+    @Part
+    def printed_shell(self):
+        return FusedSolid(shape_in=self.hab_airlock, tool=self.hab_base)
 
     # @Part
     # def printed_shell(self):
@@ -210,10 +217,9 @@ class Habitat(GeomBase):
     def get_tot_use_vol(self):
         storage_volume = self.storage_module.get_storage_volume
         workshop_volume = self.repair_workshop[0].WorkshopVolume
-        airlock_volume = self.airlock.get_airlock_volume
         life_support_volume = self.life_support.get_lifesup_volume
 
-        total_used_volume = self.science_module.get_science_volume + self.communications.get_comms_volume + storage_volume + workshop_volume + airlock_volume + \
+        total_used_volume = self.science_module.get_science_volume + self.communications.get_comms_volume + storage_volume + workshop_volume + self.airlock.get_airlock_volume + \
                             self.living_quarters.get_livquart_volume + life_support_volume
 
         return total_used_volume                                            # [m^3] Hab volume used
@@ -221,10 +227,9 @@ class Habitat(GeomBase):
     @Attribute
     def get_tot_power_req(self):
         workshop_power = self.repair_workshop[0].WorkshopPower * self.NumberOfWorkshops
-        airlock_power = self.airlock.AirlockPower * self.NumberOfAirlocks
         life_support_power = self.life_support.get_lifesup_power
 
-        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power + airlock_power + \
+        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power + self.airlock.AirlockPower + \
                                self.living_quarters.get_livquart_power + life_support_power
 
         return total_required_power                                         # [kW] Total power requirement of Hab
