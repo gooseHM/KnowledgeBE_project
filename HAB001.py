@@ -30,9 +30,9 @@ class Habitat(GeomBase):
     Body = Input(inout['M4'].value)
 
         # Number of persons living in Hab
-    NumberOfOccupants = Input(1)
+    NumberOfOccupants = Input(inout['M5'].value)
     MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
-    NumberOfFloors = Input(3)                                               # Number of floors in the Hab
+    NumberOfFloors = Input(3)                                             # Number of floors in the Hab
 
     NumberOfWorkshops = Input(1)                                            # Number of Workshops
 
@@ -48,7 +48,14 @@ class Habitat(GeomBase):
 # Modules #
     @Attribute
     def safe_output(self):
-        self.inout['B6'] = self.life_support.Heating.t_min
+        #Heating out put
+        self.inout['B5']  = self.life_support.Heating.t_min
+        self.inout['B18'] = self.life_support.Heating.Q_heat/1000
+        #Volume outputs
+        self.inout['B21'] = self.life_support.get_lifesup_volume
+        self.inout['B22'] = self.living_quarters.get_livquart_volume
+        self.inout['B23'] = self.repair_workshop[0].WorkshopVolume
+        self.inout['B24'] = self.storage_module.get_storage_volume
         return self.specs.save('Habitat_Design_Specification.xlsx')
     @Part
     def science_module(self):
