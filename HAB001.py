@@ -106,28 +106,6 @@ class Habitat(GeomBase):
                                          if child.index == 0
                                          else child.previous.position, 'z', 3))
 
-    # @Part
-    # def test_circle(self):
-    #     return Circle(radius=5+self.HabThickness, position=XOY.translate('z', 3))
-
-    # @Part
-    # def main_hab(self):
-    #     return SewnSolid(built_from=[ScaledSurface(surface_in=LoftedSurface(profiles=self.hab_profiles),
-    #                                                reference_point=Point(0, 0, 3),
-    #                                                factor=(self.life_support.Heating.t_min + 5)/5),
-    #                                  Face(island=ScaledCurve(curve_in=self.hab_profiles[-1],
-    #                                                          reference_point=Point(0, 0, 3),
-    #                                                          factor=(self.life_support.Heating.t_min+5)/5)),
-    #                                  Face(island=ScaledCurve(curve_in=self.hab_profiles[0],
-    #                                                          reference_point=Point(0, 0, 3),
-    #                                                          factor=(self.life_support.Heating.t_min+5)/5))])
-
-    # @Part
-    # def airlock_body(self):
-    #     return Box(length=self.airlock.airlock_dims[0],
-    #                 width=self.airlock.airlock_dims[1],
-    #                 height=self.airlock.airlock_dims[2],
-    #                 position=XOY.translate('x', -1.5, 'z', 2.5))
 
     @Part
     def habitat_geometry(self):

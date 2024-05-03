@@ -11,7 +11,7 @@ class LifeSupport(Base):
     Q_sys = Input()
     Body = Input()
 ### Modules ###
-    sys.path.append('livingsupport_parts')
+
     @Part
     def Power(self):
         return Power()
