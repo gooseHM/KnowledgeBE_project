@@ -1,6 +1,8 @@
 from parapy.core import *
 from parapy.geom import *
+from parapy.gui import display
 from parapy.exchange.stl import STLWriter
+from parapy.exchange.step import STEPWriter
 from SciModule import Science
 from CommsModule import Communications
 from Storage import Storage
@@ -44,12 +46,12 @@ class Habitat(GeomBase):
     WindSpeed = Input(120)                                                  # [km/h] Wind speed to sustain
     AtmosphericDensity = Input(1.293)                                       # [kg/m^3] Atmospheric density of planet
 
-
 # Modules #
     @Attribute
     def safe_output(self):
         self.inout['B6'] = self.life_support.Heating.t_min
         return self.specs.save('Habitat_Design_Specification.xlsx')
+
     @Part
     def science_module(self):
         return Science(pass_down="NumberOfOccupants")
@@ -97,76 +99,47 @@ class Habitat(GeomBase):
                                          if child.index == 0
                                          else child.previous.position, 'z', 3))
 
-    @Part
-    def inner_shell(self):
-        return LoftedSurface(profiles=self.hab_profiles)
-
-    @Part
-    def inner_volume(self):
-        return SewnSolid(built_from=[self.inner_shell, self.hab_floors[0], self.hab_floors[-1]])
-
     # @Part
     # def test_circle(self):
     #     return Circle(radius=5+self.HabThickness, position=XOY.translate('z', 3))
 
-    @Part
-    def outer_shell(self):
-        return ScaledSurface(surface_in=self.inner_shell,
-                             reference_point=Point(0, 0, 3),
-                             factor=(self.life_support.Heating.t_min + 5)/5)
-
-    @Attribute
-    def outer_floor_profile(self):
-        return ScaledCurve(curve_in=self.hab_profiles[0],
-                           reference_point=Point(0, 0, 3),
-                           factor=(self.life_support.Heating.t_min+5)/5)
-
-    @Attribute
-    def outer_roof_profile(self):
-        return ScaledCurve(curve_in=self.hab_profiles[-1],
-                           reference_point=Point(0, 0, 3),
-                           factor=(self.life_support.Heating.t_min+5)/5)
-
-    @Part
-    def outer_floor(self):
-        return Face(island=self.outer_floor_profile)
-
-    @Part
-    def outer_roof(self):
-        return Face(island=self.outer_roof_profile)
-
-    @Part
-    def main_hab(self):
-        return SewnSolid(built_from=[self.outer_shell, self.outer_floor, self.outer_roof])
-
-    @Part
-    def airlock_body(self):
-        return Box(length=self.airlock.airlock_dims[0],
-                   width=self.airlock.airlock_dims[1],
-                   height=self.airlock.airlock_dims[2],
-                   position=XOY.translate('x', -1.5, 'z', 2.5))
-
-    @Part
-    def filleted_airlock(self):
-        return FilletedSolid(built_from=self.airlock_body,
-                             radius=0.5,
-                             edge_table=self.airlock_body.top_face.edges)
-
-    @Part
-    def hab_base(self):
-        return Cylinder(radius=self.radii[0]*(self.life_support.Heating.t_min + 5)/5, height=0.5, position=XOY.translate('z', 2.5))
-
-    @Part
-    def hab_airlock(self):
-        return FusedSolid(shape_in=self.filleted_airlock, tool=self.main_hab)
-
-    @Part
-    def printed_shell(self):
-        return FusedSolid(shape_in=self.hab_airlock, tool=self.hab_base)
+    # @Part
+    # def main_hab(self):
+    #     return SewnSolid(built_from=[ScaledSurface(surface_in=LoftedSurface(profiles=self.hab_profiles),
+    #                                                reference_point=Point(0, 0, 3),
+    #                                                factor=(self.life_support.Heating.t_min + 5)/5),
+    #                                  Face(island=ScaledCurve(curve_in=self.hab_profiles[-1],
+    #                                                          reference_point=Point(0, 0, 3),
+    #                                                          factor=(self.life_support.Heating.t_min+5)/5)),
+    #                                  Face(island=ScaledCurve(curve_in=self.hab_profiles[0],
+    #                                                          reference_point=Point(0, 0, 3),
+    #                                                          factor=(self.life_support.Heating.t_min+5)/5))])
 
     # @Part
-    # def printed_shell(self):
-    #     return SubtractedSolid(shape_in=self.full_hab, tool=self.inner_volume)
+    # def airlock_body(self):
+    #     return Box(length=self.airlock.airlock_dims[0],
+    #                 width=self.airlock.airlock_dims[1],
+    #                 height=self.airlock.airlock_dims[2],
+    #                 position=XOY.translate('x', -1.5, 'z', 2.5))
+
+    @Part
+    def habitat_geometry(self):
+        return FusedSolid(shape_in=FusedSolid(shape_in=Box(length=self.airlock.airlock_dims[0],
+                                                           width=self.airlock.airlock_dims[1],
+                                                           height=self.airlock.airlock_dims[2],
+                                                           position=XOY.translate('x', -1.5, 'z', 2.5)),
+                                              tool=SewnSolid(built_from=[ScaledSurface(surface_in=LoftedSurface(profiles=self.hab_profiles),
+                                                                                       reference_point=Point(0, 0, 3),
+                                                                                       factor=(self.life_support.Heating.t_min + 5)/5),
+                                                                         Face(island=ScaledCurve(curve_in=self.hab_profiles[-1],
+                                                                                                 reference_point=Point(0, 0, 3),
+                                                                                                 factor=(self.life_support.Heating.t_min+5)/5)),
+                                                                         Face(island=ScaledCurve(curve_in=self.hab_profiles[0],
+                                                                                                 reference_point=Point(0, 0, 3),
+                                                                                                 factor=(self.life_support.Heating.t_min+5)/5))])),
+                          tool=Cylinder(radius=self.radii[0]*(self.life_support.Heating.t_min + 5)/5,
+                                        height=0.5,
+                                        position=XOY.translate('z', 2.5)))
 
     @Part
     def hab_floors(self):
@@ -196,8 +169,7 @@ class Habitat(GeomBase):
                    position=translate(rotate(self.position.translate('z', 3)
                                              if child.index == 0
                                              else child.previous.position, 'z', self.angle_step),
-                                      'z', self.h_step),
-                   )
+                                      'z', self.h_step))
 
     @Part
     def inner_column(self):
@@ -266,12 +238,20 @@ class Habitat(GeomBase):
         else:
             return self.NumberOfFloors
 
+
 # STL Output #
 
     @Part
     def protective_shell(self):
         return STLWriter(shape_in=[self.printed_shell],
                          default_directory=DIR)
+
+# STEP Output #
+
+    @Part
+    def protective_shell_step(self):
+        return STEPWriter(nodes=[self.printed_shell],
+                          default_directory=DIR)
 
 
 def generate_warning(warning_header, msg):
@@ -283,7 +263,9 @@ def generate_warning(warning_header, msg):
     messagebox.showwarning(warning_header, msg)
 
 
+def hide_parts():
+    return display(False)
+
 if __name__ == '__main__':
-    from parapy.gui import display
     obj = Habitat(label='Habitat')
     display(obj)
