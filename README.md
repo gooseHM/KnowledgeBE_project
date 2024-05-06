@@ -7,7 +7,9 @@ Used extensions and software packages
 - Matlab R2024a
 optimization toolbox
 - Python
-![Uploading image.png…]()
+
+![image](https://github.com/gooseHM/KnowledgeBE_project/assets/128814624/8a9d8634-0176-408f-bbbd-06a947d83a7c)
+
 
 
 
