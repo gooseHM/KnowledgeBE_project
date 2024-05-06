@@ -21,9 +21,7 @@ os.system("taskkill /f /im excel.exe")
 
 
 class Habitat(GeomBase):
-    ''' Habitat class
-    todo add base geometry
-     for presentation purpose make sure only relevant geo is displayed '''
+
     #Getting excel values
     specs = openpyxl.load_workbook('Habitat_Design_Specification.xlsx')
     data = specs['Data']
@@ -32,9 +30,9 @@ class Habitat(GeomBase):
     Body = Input(inout['M4'].value)
 
         # Number of persons living in Hab
-    NumberOfOccupants = Input(inout['M5'].value)
+    NumberOfOccupants = Input(1)
     MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
-    NumberOfFloors = Input(3)                                             # Number of floors in the Hab
+    NumberOfFloors = Input(3)                                               # Number of floors in the Hab
 
     NumberOfWorkshops = Input(1)                                            # Number of Workshops
 
@@ -49,14 +47,7 @@ class Habitat(GeomBase):
 # Modules #
     @Attribute
     def safe_output(self):
-        #Heating out put
-        self.inout['B5']  = self.life_support.Heating.t_min
-        self.inout['B18'] = self.life_support.Heating.Q_heat/1000
-        #Volume outputs
-        self.inout['B21'] = self.life_support.get_lifesup_volume
-        self.inout['B22'] = self.living_quarters.get_livquart_volume
-        self.inout['B23'] = self.repair_workshop[0].WorkshopVolume
-        self.inout['B24'] = self.storage_module.get_storage_volume
+        self.inout['B6'] = self.life_support.Heating.t_min
         return self.specs.save('Habitat_Design_Specification.xlsx')
 
     @Part
@@ -73,7 +64,7 @@ class Habitat(GeomBase):
 
     @Part
     def repair_workshop(self):
-        return Repair(quantify=self.NumberOfWorkshops)
+        return Repair()
 
     @Part
     def airlock(self):
@@ -86,7 +77,7 @@ class Habitat(GeomBase):
     @Part
     def life_support(self):
         return LifeSupport(A_vertical=self.get_lat_surf_area, A_base=self.get_base_area,
-                           Q_sys=self.get_tot_power_req,Body=self.Body)
+                           Q_sys=self.get_tot_power_req, Body=self.Body)
 
 # Geometry #
 
@@ -105,7 +96,6 @@ class Habitat(GeomBase):
                       position=translate(self.position
                                          if child.index == 0
                                          else child.previous.position, 'z', 3))
-
 
     @Part
     def habitat_geometry(self):
@@ -187,24 +177,30 @@ class Habitat(GeomBase):
 
     @Attribute
     def get_tot_use_vol(self):
-        storage_volume = self.storage_module.get_storage_volume
-        workshop_volume = self.repair_workshop[0].WorkshopVolume
         life_support_volume = self.life_support.get_lifesup_volume
 
-        total_used_volume = self.science_module.get_science_volume + self.communications.get_comms_volume + storage_volume + workshop_volume + self.airlock.get_airlock_volume + \
-                            self.living_quarters.get_livquart_volume + life_support_volume
+        total_used_volume = self.science_module.get_science_volume + \
+                            self.communications.get_comms_volume + \
+                            self.storage_module.get_storage_volume + \
+                            self.repair_workshop.get_workshop_volume + \
+                            self.airlock.get_airlock_volume + \
+                            self.living_quarters.get_livquart_volume + \
+                            life_support_volume
 
         return total_used_volume                                            # [m^3] Hab volume used
 
     @Attribute
     def get_tot_power_req(self):
-        workshop_power = self.repair_workshop[0].WorkshopPower * self.NumberOfWorkshops
         life_support_power = self.life_support.get_lifesup_power
 
-        total_required_power = self.science_module.get_science_power + self.communications.get_comms_power + workshop_power + self.airlock.get_airlock_power + \
-                               self.living_quarters.get_livquart_power + life_support_power
+        total_required_power = self.science_module.get_science_power + \
+                               self.communications.get_comms_power + \
+                               self.repair_workshop.get_workshop_power + \
+                               self.airlock.get_airlock_power + \
+                               self.living_quarters.get_livquart_power + \
+                               life_support_power
 
-        return total_required_power                                         # [kW] Total power requirement of Hab
+        return total_required_power                                         # [W] Total power requirement of Hab
 
     @Attribute                                                              # Minimum/Maximum floor count errors
     def build_height(self):
@@ -222,7 +218,6 @@ class Habitat(GeomBase):
             return 2
         else:
             return self.NumberOfFloors
-
 
 # STL Output #
 
@@ -247,9 +242,6 @@ def generate_warning(warning_header, msg):
 
     messagebox.showwarning(warning_header, msg)
 
-
-def hide_parts():
-    return display(False)
 
 if __name__ == '__main__':
     obj = Habitat(label='Habitat')
