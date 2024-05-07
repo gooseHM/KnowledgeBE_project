@@ -17,18 +17,19 @@ class Food(Base):
 
     @Attribute
     def get_farm_volume(self):
-        farm_volume = self.FarmLand * self.NumberOfOccupants
-        return farm_volume
+        if self.MissionDuration > 1:
+            farm_volume = self.FarmLand * self.NumberOfOccupants
+            return farm_volume
+        else:
+            return 0
 
     @Attribute
     def get_farm_power(self):
-        farm_power = self.get_uvlamps * self.UVLampPow
-        return farm_power
-
-    # @Attribute
-    # def get_water_req(self):
-    #     FarmWaterRequired = self.FarmLand * self.WaterRequired
-    #     return FarmWaterRequired
+        if self.MissionDuration > 1:
+            farm_power = self.get_uvlamps * self.UVLampPow
+            return farm_power
+        else:
+            return 0
 
 
 if __name__ == '__main__':

@@ -30,11 +30,11 @@ class Habitat(GeomBase):
     Body = Input(inout['M4'].value)
 
         # Number of persons living in Hab
-    NumberOfOccupants = Input(1)
+    NumberOfOccupants = Input(1)                                            # Number of occupants
+    MissionDuration = Input(1)                                              # Mission duration in years
     MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
     NumberOfFloors = Input(3)                                               # Number of floors in the Hab
 
-    NumberOfWorkshops = Input(1)                                            # Number of Workshops
 
 # Maybe an input can be a choice of environment rather
 # than individual environmental/atmospheric inputs
@@ -56,11 +56,11 @@ class Habitat(GeomBase):
 
     @Part
     def communications(self):
-        return Communications()
+        return Communications(pass_down="NumberOfOccupants")
 
     @Part
     def storage_module(self):
-        return Storage()
+        return Storage(pass_down=("NumberOfOccupants", "MissionDuration"))
 
     @Part
     def repair_workshop(self):
@@ -76,8 +76,11 @@ class Habitat(GeomBase):
 
     @Part
     def life_support(self):
-        return LifeSupport(A_vertical=self.get_lat_surf_area, A_base=self.get_base_area,
-                           Q_sys=self.get_tot_power_req, Body=self.Body)
+        return LifeSupport(A_vertical=self.get_lat_surf_area,
+                           A_base=self.get_base_area,
+                           Q_sys=self.get_tot_power_req,
+                           Body=self.Body,
+                           pass_down=("NumberOfOccupants", "MissionDuration"))
 
 # Geometry #
 

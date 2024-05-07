@@ -4,6 +4,7 @@ from parapy.core import *
 class Storage(Base):
 
     NumberOfOccupants = Input(1)
+    MissionDuration = Input(1)
     GeneralStorage = Input(10)
 
     @Attribute
@@ -18,8 +19,12 @@ class Storage(Base):
 
     @Attribute
     def get_storage_volume(self):
-        storage_volume = self.food_storage + self.personal_storage + self.GeneralStorage
-        return storage_volume
+        if self.MissionDuration == 1:
+            storage_volume = self.food_storage + self.personal_storage + self.GeneralStorage
+            return storage_volume
+        else:
+            storage_volume = self.personal_storage + self.GeneralStorage
+            return storage_volume
 
 
 if __name__ == '__main__':
