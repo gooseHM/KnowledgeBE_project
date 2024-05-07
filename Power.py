@@ -9,13 +9,13 @@ class Power(Base):
     @Attribute
     def get_power_generation(self):
         if self.Q_sys <= 50000:
-            NumberOfSolarPanels = round(self.Q_sys / self.s_panel) + 5
-            NumberOfNuclearReactors = 0
-            return NumberOfSolarPanels, NumberOfNuclearReactors
+            solar_panels = round(self.Q_sys / self.s_panel) + 5
+            nuclear_reactors = 0
+            return solar_panels, nuclear_reactors
         else:
-            NumberOfSolarPanels = 80
-            NumberOfNuclearReactors = round((self.Q_sys - 45000) / 5000)
-            return NumberOfSolarPanels, NumberOfNuclearReactors
+            solar_panels = 80
+            nuclear_reactors = round((self.Q_sys - 45000) / 5000)
+            return solar_panels, nuclear_reactors
 
 
 if __name__ == '__main__':

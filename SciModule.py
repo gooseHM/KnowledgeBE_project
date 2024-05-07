@@ -3,7 +3,7 @@ from parapy.core import *
 
 class Science(Base):
 
-    NumberOfOccupants = Input()
+    NumberOfOccupants = Input(1)
 
     @Attribute
     def human_research_lab(self):
@@ -31,30 +31,23 @@ class Science(Base):
 
     @Attribute
     def get_science_volume(self):
-        if self.min_occupants < 3:
-            ScienceVolume = self.human_research_lab[0] + self.biology_lab[0]
-            return ScienceVolume
+        if self.NumberOfOccupants < 3:
+            science_volume = self.human_research_lab[0] + self.biology_lab[0]
+            return science_volume
         else:
-            ScienceVolume = self.human_research_lab[0] + self.biology_lab[0] + \
+            science_volume = self.human_research_lab[0] + self.biology_lab[0] + \
                             self.physics_lab[0] + self.geology_lab[0]
-            return ScienceVolume
+            return science_volume
 
     @Attribute
     def get_science_power(self):
-        if self.min_occupants < 3:
-            SciencePower = self.human_research_lab[1] + self.biology_lab[1]
-            return SciencePower
+        if self.NumberOfOccupants < 3:
+            science_power = self.human_research_lab[1] + self.biology_lab[1]
+            return science_power
         else:
-            SciencePower = self.human_research_lab[1] + self.biology_lab[1] + \
+            science_power = self.human_research_lab[1] + self.biology_lab[1] + \
                             self.physics_lab[1] + self.geology_lab[1]
-            return SciencePower
-
-    @Attribute
-    def min_occupants(self):
-        if self.NumberOfOccupants < 1:
-            return 1
-        else:
-            return self.NumberOfOccupants
+            return science_power
 
 
 if __name__ == '__main__':

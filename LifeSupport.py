@@ -42,25 +42,20 @@ class LifeSupport(Base):
 # Attributes #
 
     @Attribute
-    def get_lifesup_volume(self):
-        WatVol = self.Water.get_system_volume
-        FarmVol = self.Food.get_farm_volume
-        OxyVol = self.Oxygen.get_oxygen_volume
+    def get_lifesup_volume(self):                                           # [m^3] Volume used by life support
+        life_support_volume = self.Oxygen.get_oxygen_volume + \
+                              self.Water.get_system_volume + \
+                              self.Food.get_farm_volume
 
-        LifeSupportVolume = WatVol + FarmVol + OxyVol
-
-        return LifeSupportVolume                # [m^3] Volume used by life support
+        return life_support_volume
 
     @Attribute
-    def get_lifesup_power(self):
-        #HeatPow = self.Heating.Q_heat
-        OxyPow = self.Oxygen.get_oxygen_power
-        FarmPow = self.Food.get_farm_power
-        WatPow = self.Water.get_system_power
+    def get_lifesup_power(self):                                            # [W] Power used by life support
+        life_support_power = self.Oxygen.get_oxygen_power + \
+                             self.Water.get_system_power + \
+                             self.Food.get_farm_power
 
-        LifeSupportPower = OxyPow + FarmPow + WatPow
-
-        return LifeSupportPower                 # [W] Power used by life support
+        return life_support_power
 
 
 if __name__ == '__main__':

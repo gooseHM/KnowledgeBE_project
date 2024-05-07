@@ -8,12 +8,11 @@ class Food(Base):
 
     FarmLand = Input(180)                                # [m^2] Farm land required for 1 person for 1 year
     UVLampPow = Input(500)                               # [W] Power required for 1 UV Lamp
-    # WaterRequired = Input(2)                             # [L/min] Water requirement for 1 m^2 of farm land
 
     @Attribute
     def get_uvlamps(self):
-        NumberOfUVLamps = self.FarmLand/5
-        return NumberOfUVLamps
+        uv_lamps = self.FarmLand/5
+        return uv_lamps
 
     @Attribute
     def get_farm_volume(self):
