@@ -33,7 +33,7 @@ class Habitat(GeomBase):
     NumberOfOccupants = Input(1)                                            # Number of occupants
     MissionDuration = Input(1)                                              # Mission duration in years
     MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
-    NumberOfFloors = Input(3)                                               # Number of floors in the Hab
+    NumberOfFloors = 0                                                      # Number of floors in the Hab
 
 
 # Maybe an input can be a choice of environment rather
@@ -180,47 +180,53 @@ class Habitat(GeomBase):
 
     @Attribute
     def get_tot_use_vol(self):
-        life_support_volume = self.life_support.get_lifesup_volume
-
         total_used_volume = self.science_module.get_science_volume + \
                             self.communications.get_comms_volume + \
                             self.storage_module.get_storage_volume + \
                             self.repair_workshop.get_workshop_volume + \
                             self.airlock.get_airlock_volume + \
                             self.living_quarters.get_livquart_volume + \
-                            life_support_volume
+                            self.life_support.get_lifesup_volume
 
         return total_used_volume                                            # [m^3] Hab volume used
 
     @Attribute
     def get_tot_power_req(self):
-        life_support_power = self.life_support.get_lifesup_power
-
         total_required_power = self.science_module.get_science_power + \
                                self.communications.get_comms_power + \
                                self.repair_workshop.get_workshop_power + \
                                self.airlock.get_airlock_power + \
                                self.living_quarters.get_livquart_power + \
-                               life_support_power
+                               self.life_support.get_lifesup_power
 
         return total_required_power                                         # [W] Total power requirement of Hab
 
     @Attribute                                                              # Minimum/Maximum floor count errors
     def build_height(self):
-        if self.NumberOfFloors*3 > self.MaxPrintHeight:
-            height_error = f"Current floor count exceeds maximum print height of {self.MaxPrintHeight}m." \
-                  f"\nFloor count will be set to maximum possible: {m.floor(self.MaxPrintHeight/3)} floors."
-            warnings.warn(height_error)
-            generate_warning("Warning: Value changed", height_error)
-            return m.floor(self.MaxPrintHeight/3)
-        elif self.NumberOfFloors <= 1:
-            height_error2 = f"Current floor count is not enough to house all modules" \
-                            f"\nFloor count set to minimum possible: ({2})"
-            warnings.warn(height_error2)
-            generate_warning("Warning: Value changed", height_error2)
-            return 2
-        else:
-            return self.NumberOfFloors
+        start = 0
+        mode = True
+        while mode:
+            x = np.linspace(4, 25, start + 2)
+            y = np.zeros(len(x))
+            for k in range(len(x)):
+                y[k] = m.sqrt(x[k])
+            z = np.flip(y)
+
+            available_vol = 0.
+            for p in range(len(z) - 1):
+                available_vol = available_vol + (1 / 3) * m.pi * 3 * \
+                          (z[p + 1] ** 2 + z[p + 1] * z[p] + z[p] ** 2)
+
+            if self.get_tot_use_vol > available_vol and (start * 3) + 3 <= self.MaxPrintHeight:
+                start += 1
+            else:
+                if (start * 3) + 3 > self.MaxPrintHeight:
+                    start -= 1
+                    height_error = f"Current configuration exceeds maximum build volume."
+                    warnings.warn(height_error)
+                    generate_warning("Warning: Build Height", height_error)
+                mode = False
+        return start
 
 # STL Output #
 
