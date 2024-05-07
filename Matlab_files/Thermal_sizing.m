@@ -10,7 +10,7 @@ A_vertical = input(6);
 t_base = input(7);
 Q_sys = input(8);
 Q_max = input(9)*Q_sys;
-
+perc_Qsys = input(10)
 
 t_v_init = 0.02;
 
@@ -33,7 +33,7 @@ t_v_init = 0.02;
 input_t_opt = [GL_V,GL_H,GR_V,...
          Q_sys,Q_max_HR,Q_s...
         T_ex,T_in,...
-        A_vertical];
+        A_vertical,perc_Qsys];
 
  out_QH_t = t_opt(input_t_opt);
 

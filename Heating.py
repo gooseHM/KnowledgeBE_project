@@ -29,6 +29,7 @@ class Heating(Base):
     # Power
     Q_sys = Input(25000)  # Nominal Power use in W
     Q_max = Input(0.05)  # percentage of heating power alowed
+    perc_Qsys = Input(0.10)
 
     @Attribute
     def get_R_info(self):
@@ -54,7 +55,7 @@ class Heating(Base):
         input = matlab.double([self.get_R_info[0],self.get_R_info[1],
                                self.T_inside,self.get_R_info[2],
                                self.A_base,self.A_vertical,self.t_base,
-                               self.Q_sys,self.Q_max])
+                               self.Q_sys,self.Q_max,self.perc_Qsys])
 
         x = me.Thermal_sizing(input,nargout=1)
         return np.array(x)

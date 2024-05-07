@@ -15,11 +15,11 @@ T_in = input(8)+273.15;
 
 
 % A_vertical = input(9);
-
+perc_Qsys = input(10)
 
 
 %x1 = Qheat x2 = T_V x3 = T_H
-eqs = @(x) [Q_sys + x(1) + GL_V*(x(2)-T_in) + GL_H*(x(3)-T_in);
+eqs = @(x) [Q_sys*perc_Qsys + x(1) + GL_V*(x(2)-T_in) + GL_H*(x(3)-T_in);
             Q_sun + GL_V*(T_in-x(2))+GR_V*(T_ex^4 - x(2)^4);
             GL_H*(T_in-x(3))];
 

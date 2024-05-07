@@ -15,7 +15,7 @@ Q_max_HR = input(5);
 
 
 A_vertical = input(9);
-
+%perc_Qsys = input(10)
 
 t_initial = A_vertical*k_con_mars/GL_V;
 dt = 0.01; %m 
