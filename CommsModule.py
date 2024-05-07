@@ -17,23 +17,15 @@ class Communications(Base):
         hub_power = 1000                            # [W] Power required for comms hub
         return hub_volume, hub_power
 
-
     @Attribute
     def get_comms_volume(self):
-        CommsVolume = (self.NumberOfOccupants * self.personal_comms[0]) + self.comms_hub[0]
-        return CommsVolume
+        comms_volume = (self.NumberOfOccupants * self.personal_comms[0]) + self.comms_hub[0]
+        return comms_volume
 
     @Attribute
     def get_comms_power(self):
-        CommsPower = (self.NumberOfOccupants * self.personal_comms[1]) + self.comms_hub[1]
-        return CommsPower
-
-    @Attribute
-    def min_occupants(self):
-        if self.NumberOfOccupants < 1:
-            return 1
-        else:
-            return self.NumberOfOccupants
+        comms_power = (self.NumberOfOccupants * self.personal_comms[1]) + self.comms_hub[1]
+        return comms_power
 
 
 if __name__ == '__main__':

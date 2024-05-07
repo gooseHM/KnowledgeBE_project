@@ -22,27 +22,17 @@ os.system("taskkill /f /im excel.exe")
 
 class Habitat(GeomBase):
 
-    #Getting excel values
+    # Getting excel values
     specs = openpyxl.load_workbook('Habitat_Design_Specification.xlsx')
     data = specs['Data']
     inout = specs['Design Specification']
-    # Inputs:
-    Body = Input(inout['M4'].value)
 
-        # Number of persons living in Hab
+    # Inputs:
+    Body = Input(inout['M4'].value)                                         # Environment selection
+
     NumberOfOccupants = Input(1)                                            # Number of occupants
     MissionDuration = Input(1)                                              # Mission duration in years
-    MaxPrintHeight = Input(20.)                                             # [m] Printable height of Hab
-    NumberOfFloors = 0                                                      # Number of floors in the Hab
-
-
-# Maybe an input can be a choice of environment rather
-# than individual environmental/atmospheric inputs
-
-    Gravity = Input(9.81)                                                   # [m/s^2] Gravitational acceleration
-    Radiation = Input(6.2)                                                  # [mSv] Average natural radiation level
-    WindSpeed = Input(120)                                                  # [km/h] Wind speed to sustain
-    AtmosphericDensity = Input(1.293)                                       # [kg/m^3] Atmospheric density of planet
+    MaxPrintHeight = Input(21.)                                             # [m] Printable height of Hab
 
 # Modules #
     @Attribute
@@ -52,15 +42,16 @@ class Habitat(GeomBase):
 
     @Part
     def science_module(self):
-        return Science(pass_down="NumberOfOccupants")
+        return Science(NumberOfOccupants=self.min_occupants)
 
     @Part
     def communications(self):
-        return Communications(pass_down="NumberOfOccupants")
+        return Communications(NumberOfOccupants=self.min_occupants)
 
     @Part
     def storage_module(self):
-        return Storage(pass_down=("NumberOfOccupants", "MissionDuration"))
+        return Storage(NumberOfOccupants=self.min_occupants,
+                       MissionDuration=self.min_stay)
 
     @Part
     def repair_workshop(self):
@@ -72,7 +63,7 @@ class Habitat(GeomBase):
 
     @Part
     def living_quarters(self):
-        return LivingQuarters(pass_down="NumberOfOccupants")
+        return LivingQuarters(NumberOfOccupants=self.min_occupants)
 
     @Part
     def life_support(self):
@@ -80,11 +71,12 @@ class Habitat(GeomBase):
                            A_base=self.get_base_area,
                            Q_sys=self.get_tot_power_req,
                            Body=self.Body,
-                           pass_down=("NumberOfOccupants", "MissionDuration"))
+                           NumberOfOccupants=self.min_occupants,
+                           MissionDuration=self.min_stay)
 
 # Geometry #
 
-    @Attribute                                                      # Create loft profiles for inner shell
+    @Attribute                                                      # Creates loft profile definitions
     def radii(self):
         x = np.linspace(4, 25, self.build_height+2)
         y = np.zeros(len(x))
@@ -93,7 +85,7 @@ class Habitat(GeomBase):
         return np.flip(y)
 
     @Part
-    def hab_profiles(self):
+    def hab_profiles(self):                                         # Creates loft profiles
         return Circle(quantify=self.build_height+2,
                       radius=self.radii[child.index],
                       position=translate(self.position
@@ -101,7 +93,7 @@ class Habitat(GeomBase):
                                          else child.previous.position, 'z', 3))
 
     @Part
-    def habitat_geometry(self):
+    def habitat_geometry(self):                                     # Fuses airlock with main Hab body
         return FusedSolid(shape_in=FusedSolid(shape_in=Box(length=self.airlock.airlock_dims[0],
                                                            width=self.airlock.airlock_dims[1],
                                                            height=self.airlock.airlock_dims[2],
@@ -134,12 +126,11 @@ class Habitat(GeomBase):
     radius = 1
 
     @Attribute
-    def angle_step(self):
-        # revolutions / Height difference in step
+    def angle_step(self):                                           # Revolutions / Height difference in step
         return (self.build_height/3) * 2 * m.pi / (6*self.build_height - 1)
 
     @Part
-    def steps(self):
+    def steps(self):                                                # Steps definitions
         return Box(quantify=6*self.build_height - 1,
                    width=self.w_step,
                    length=self.l_step,
@@ -158,7 +149,7 @@ class Habitat(GeomBase):
 # Habitat Attributes #
 
     @Attribute
-    def get_available_vol(self):
+    def get_available_vol(self):                                    # Available volume that can be used
         hab_vol = 0.
         for i in range(len(self.radii)-1):
             hab_vol = hab_vol + (1/3) * m.pi * 3 * \
@@ -166,20 +157,20 @@ class Habitat(GeomBase):
         return hab_vol
 
     @Attribute
-    def get_lat_surf_area(self):
+    def get_lat_surf_area(self):                                    # Surface area of the Hab
         lat_surf_area = m.pi * self.radii[-1] ** 2
         for i in range(len(self.radii)-1):
             s = m.sqrt((self.radii[i] - self.radii[i+1])**2 + 3**2)
             lat_surf_area = lat_surf_area + m.pi * (self.radii[i] + self.radii[i+1])*s
         return lat_surf_area
 
-    @Attribute
+    @Attribute                                                      # Area of the Hab base
     def get_base_area(self):
         base_area = m.pi * self.radii[0] ** 2
         return base_area
 
     @Attribute
-    def get_tot_use_vol(self):
+    def get_tot_use_vol(self):                                      # Total volume used by modules
         total_used_volume = self.science_module.get_science_volume + \
                             self.communications.get_comms_volume + \
                             self.storage_module.get_storage_volume + \
@@ -188,10 +179,10 @@ class Habitat(GeomBase):
                             self.living_quarters.get_livquart_volume + \
                             self.life_support.get_lifesup_volume
 
-        return total_used_volume                                            # [m^3] Hab volume used
+        return total_used_volume
 
     @Attribute
-    def get_tot_power_req(self):
+    def get_tot_power_req(self):                                    # Total power used by modules
         total_required_power = self.science_module.get_science_power + \
                                self.communications.get_comms_power + \
                                self.repair_workshop.get_workshop_power + \
@@ -199,9 +190,9 @@ class Habitat(GeomBase):
                                self.living_quarters.get_livquart_power + \
                                self.life_support.get_lifesup_power
 
-        return total_required_power                                         # [W] Total power requirement of Hab
+        return total_required_power
 
-    @Attribute                                                              # Minimum/Maximum floor count errors
+    @Attribute                                                      # Habitat floor count determination logic
     def build_height(self):
         start = 0
         mode = True
@@ -217,10 +208,10 @@ class Habitat(GeomBase):
                 available_vol = available_vol + (1 / 3) * m.pi * 3 * \
                           (z[p + 1] ** 2 + z[p + 1] * z[p] + z[p] ** 2)
 
-            if self.get_tot_use_vol > available_vol and (start * 3) + 3 <= self.MaxPrintHeight:
+            if self.get_tot_use_vol > available_vol and (start * 3) + 3 <= self.print_height:
                 start += 1
             else:
-                if (start * 3) + 3 > self.MaxPrintHeight:
+                if (start * 3) + 3 > self.print_height:
                     start -= 1
                     height_error = f"Current configuration exceeds maximum build volume."
                     warnings.warn(height_error)
@@ -228,10 +219,14 @@ class Habitat(GeomBase):
                 mode = False
         return start
 
+    @ Attribute
+    def print_volume(self):
+        return self.habitat_geometry.volume - self.get_available_vol
+
 # STL Output #
 
     @Part
-    def protective_shell(self):
+    def protective_shell_stl(self):
         return STLWriter(shape_in=[self.printed_shell],
                          default_directory=DIR)
 
@@ -241,6 +236,47 @@ class Habitat(GeomBase):
     def protective_shell_step(self):
         return STEPWriter(nodes=[self.printed_shell],
                           default_directory=DIR)
+
+# Error Management #
+
+    @Attribute
+    def min_occupants(self):
+        if self.NumberOfOccupants < 1:
+            min_person = "Number of occupants must be at least 1" \
+                         "\nNumber of occupants set to 1"
+            warnings.warn(min_person)
+            generate_warning("Warning: Value changed", min_person)
+            return 1
+        elif self.NumberOfOccupants % 1 != 0:
+            is_decimal = "Number of occupants must be a whole number" \
+                         f"\nNumber of occupants set to {round(self.NumberOfOccupants)}"
+            warnings.warn(is_decimal)
+            generate_warning("Warning: Value changed", is_decimal)
+            return round(self.NumberOfOccupants)
+        else:
+            return self.NumberOfOccupants
+
+    @Attribute
+    def min_stay(self):
+        if self.MissionDuration < 0.5:
+            min_stay = "Non feasible mission duration" \
+                        "\nMission duration set to 0.5 years"
+            warnings.warn(min_stay)
+            generate_warning("Warning: Value changed", min_stay)
+            return 0.5
+        else:
+            return self.MissionDuration
+
+    @Attribute
+    def print_height(self):
+        if self.MaxPrintHeight < 3:
+            min_stay = "Print height is too low" \
+                        "\nPrint height set to 3m"
+            warnings.warn(min_stay)
+            generate_warning("Warning: Value changed", min_stay)
+            return 3
+        else:
+            return self.MaxPrintHeight
 
 
 def generate_warning(warning_header, msg):

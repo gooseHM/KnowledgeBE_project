@@ -9,7 +9,7 @@ class Storage(Base):
 
     @Attribute
     def food_storage(self):                         # [m^3] Volume required to store a year's worth of rations
-        food_storage_volume = 35 * self.NumberOfOccupants
+        food_storage_volume = 35 * self.NumberOfOccupants * self.MissionDuration
         return food_storage_volume
 
     @Attribute
@@ -19,7 +19,7 @@ class Storage(Base):
 
     @Attribute
     def get_storage_volume(self):
-        if self.MissionDuration == 1:
+        if self.MissionDuration <= 1:
             storage_volume = self.food_storage + self.personal_storage + self.GeneralStorage
             return storage_volume
         else:
