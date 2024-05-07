@@ -1,10 +1,51 @@
 from parapy.core import *
-
+import numpy as np
 
 class Water(Base):
-    WaterProduction = Input(1)                           # [L/min] Water production
-    StorageCapacity = Input(10)                          # [L] Water Storage Capacity
-    StorageVolume = Input(10)                            # [m^3] Water storage tank volume
+
+    NumberOfOccupants = Input(1)
+    MissionDuration = Input(1)
+    FarmLand = Input(100)
+
+    @Attribute
+    def water_recovery_system(self):
+        wrs_volume = 2 * 1 * 1
+        wrs_power = 350
+        return wrs_volume, wrs_power
+
+    @Attribute
+    def urine_recovery_system(self):
+        urs_volume = 2 * 1 * 1
+        urs_power = 350
+        return urs_volume, urs_power
+
+    @Attribute
+    def get_system_volume(self):
+        if self.MissionDuration > 1:
+            return self.water_recovery_system[0] * \
+               np.ceil(self.NumberOfOccupants/5) * \
+               np.ceil(self.FarmLand/100) + \
+               self.urine_recovery_system[0] * \
+               np.ceil(self.NumberOfOccupants/5)
+        else:
+            return self.water_recovery_system[0] * \
+               np.ceil(self.NumberOfOccupants/5) + \
+               self.urine_recovery_system[0] * \
+               np.ceil(self.NumberOfOccupants/5)
+
+    @Attribute
+    def get_system_power(self):
+        if self.MissionDuration > 1:
+            return self.water_recovery_system[1] * \
+               np.ceil(self.NumberOfOccupants/5) * \
+               np.ceil(self.FarmLand/100) + \
+               self.urine_recovery_system[1] * \
+               np.ceil(self.NumberOfOccupants/5)
+        else:
+            return self.water_recovery_system[1] * \
+               np.ceil(self.NumberOfOccupants/5) + \
+               self.urine_recovery_system[1] * \
+               np.ceil(self.NumberOfOccupants/5)
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ class Airlock(Base):
 
     @Attribute
     def get_airlock_power(self):
-        AirlockPower = 4500                             # [kWh] Airlock power consumption
+        AirlockPower = 4500                             # [kW] Airlock power consumption
         return AirlockPower
 
 
