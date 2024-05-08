@@ -4,7 +4,6 @@ from Water import Water
 from Heating import Heating
 from Oxygen import Oxygen
 from Food import Food
-import sys
 
 
 class LifeSupport(Base):
@@ -14,12 +13,12 @@ class LifeSupport(Base):
     Body = Input()
     NumberOfOccupants = Input()
     MissionDuration = Input()
-    Q_heat = Input()
+
 # Modules #
 
     @Part
     def Power(self):
-        return Power(pass_down="Q_sys, Body,Q_heat")
+        return Power(pass_down="Q_sys")
 
     @Part
     def Water(self):
