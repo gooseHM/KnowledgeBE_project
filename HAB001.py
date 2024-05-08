@@ -71,7 +71,7 @@ class Habitat(GeomBase):
         return LifeSupport(A_vertical=self.get_lat_surf_area,
                            A_base=self.get_base_area,
                            Q_sys=self.get_tot_power_req,
-                           Body=self.Body,
+                           Body=self.environment,
                            NumberOfOccupants=self.min_occupants,
                            MissionDuration=self.min_stay,
                            Q_heat=self.life_support.Heating.Q_heat)
@@ -236,14 +236,14 @@ class Habitat(GeomBase):
 
     @Part
     def protective_shell_stl(self):
-        return STLWriter(shape_in=[self.printed_shell],
+        return STLWriter(shape_in=[self.habitat_geometry],
                          default_directory=DIR)
 
 # STEP Output #
 
     @Part
     def protective_shell_step(self):
-        return STEPWriter(nodes=[self.printed_shell],
+        return STEPWriter(nodes=[self.habitat_geometry],
                           default_directory=DIR)
 
 # Output Saving to excel#
@@ -335,6 +335,17 @@ class Habitat(GeomBase):
             return 3
         else:
             return self.MaxPrintHeight
+
+    @Attribute
+    def environment(self):
+        if self.Body != "Mars" and self.Body != "Moon":
+            type_error = "Unavailable Celestial Body" \
+                         "\n try 'Moon' or 'Mars'"
+            warnings.warn(type_error)
+            generate_warning("Warning: Incorrect Input", type_error)
+            return "'Mars'"
+        else:
+            return self.Body
 
 
 def generate_warning(warning_header, msg):
