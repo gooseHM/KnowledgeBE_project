@@ -22,23 +22,24 @@ os.system("taskkill /f /im excel.exe")
 
 class Habitat(GeomBase):
 
-    # Getting excel values
+    # Instantiating Excel template
     specs = openpyxl.load_workbook('Habitat_Design_Specification.xlsx')
     data = specs['Data']
     inout = specs['Design Specification']
 
     # Inputs:
-    Body = Input(inout['M4'].value)                                         # Environment selection
+    Body = Input(inout['K4'].value)                                 # Environment selection
+    NumberOfOccupants = Input(inout['K5'].value)                    # Number of occupants
+    MissionDuration = Input(inout['K6'].value)                      # Mission duration in years
+    MaxPrintHeight = Input(inout['K7'].value)                       # [m] Printable height of Hab
 
-    NumberOfOccupants = Input(1)                                            # Number of occupants
-    MissionDuration = Input(1)                                              # Mission duration in years
-    MaxPrintHeight = Input(21.)                                             # [m] Printable height of Hab
+    File_name = Input(str('Habitat_specs_Mars_01.xlsx'))
+# Naming and saving Excel #
+    @Attribute
+    def habitat_save_file(self):
+        return self.save_output
 
 # Modules #
-    @Attribute
-    def safe_output(self):
-        self.inout['B6'] = self.life_support.Heating.t_min
-        return self.specs.save('Habitat_Design_Specification.xlsx')
 
     @Part
     def science_module(self):
@@ -72,13 +73,17 @@ class Habitat(GeomBase):
                            Q_sys=self.get_tot_power_req,
                            Body=self.Body,
                            NumberOfOccupants=self.min_occupants,
-                           MissionDuration=self.min_stay)
+                           MissionDuration=self.min_stay,
+                           Q_heat=self.life_support.Heating.Q_heat)
 
 # Geometry #
 
-    @Attribute                                                      # Creates loft profile definitions
+    base_radius = 5
+    roof_radius = 2
+
+    @Attribute  # Creates loft profile definitions
     def radii(self):
-        x = np.linspace(4, 25, self.build_height+2)
+        x = np.linspace(self.roof_radius**2, self.base_radius**2, self.build_height + 2)
         y = np.zeros(len(x))
         for i in range(len(x)):
             y[i] = m.sqrt(x[i])
@@ -197,7 +202,7 @@ class Habitat(GeomBase):
         start = 0
         mode = True
         while mode:
-            x = np.linspace(4, 25, start + 2)
+            x = np.linspace(self.roof_radius**2, self.base_radius**2, start + 2)
             y = np.zeros(len(x))
             for k in range(len(x)):
                 y[k] = m.sqrt(x[k])
@@ -219,9 +224,13 @@ class Habitat(GeomBase):
                 mode = False
         return start
 
-    @ Attribute
+    @Attribute
     def print_volume(self):
         return self.habitat_geometry.volume - self.get_available_vol
+
+    @Attribute
+    def hab_height(self):
+        return self.build_height*3 + 3
 
 # STL Output #
 
@@ -236,6 +245,55 @@ class Habitat(GeomBase):
     def protective_shell_step(self):
         return STEPWriter(nodes=[self.printed_shell],
                           default_directory=DIR)
+
+# Output Saving to excel#
+    @Attribute
+    def save_output(self):
+        # Geometric outputs
+        self.inout['B5'] = self.life_support.Heating.t_min
+        self.inout['B6'] = self.build_height
+        self.inout['B7'] = self.hab_height
+        self.inout['B8'] = self.base_radius
+        self.inout['B9'] = self.roof_radius
+        self.inout['B10'] = self.print_volume
+        # Power outputs
+        x = 0.001  # change to kilo Watt for output file
+        self.inout['B13'] = x * self.science_module.get_science_power
+        self.inout['B14'] = x * self.communications.get_comms_power
+        self.inout['B16'] = x * self.repair_workshop.get_workshop_power
+        self.inout['B17'] = x * self.airlock.get_airlock_power
+        self.inout['B18'] = x * self.living_quarters.get_livquart_power
+        self.inout['B19'] = x * self.life_support.get_lifesup_power
+        self.inout['B21'] = x * self.life_support.Heating.Q_heat
+        # Volume outputs
+        self.inout['B24'] = self.science_module.get_science_volume
+        self.inout['B25'] = self.communications.get_comms_volume
+        self.inout['B26'] = self.storage_module.get_storage_volume
+        self.inout['B27'] = self.repair_workshop.get_workshop_volume
+        self.inout['B28'] = self.airlock.get_airlock_volume
+        self.inout['B29'] = self.living_quarters.get_livquart_volume
+        self.inout['B30'] = self.life_support.get_lifesup_volume
+
+        # Out of scope design outputs
+        self.inout['F6'] = self.life_support.Power.get_power_generation[0]
+        self.inout['F7'] = self.life_support.Power.get_power_generation[1]
+
+        # Life support sub outputs
+        self.inout['F13'] = x*self.life_support.Oxygen.get_oxygen_power
+        self.inout['F14'] = x*self.life_support.Water.get_system_power
+        self.inout['F15'] = x*self.life_support.Food.get_farm_power
+
+        self.inout['F17'] = self.life_support.Oxygen.get_oxygen_volume
+        self.inout['F18'] = self.life_support.Water.get_system_volume
+        self.inout['F19'] = self.life_support.Food.get_farm_volume
+
+        # Input overwrite
+        self.inout['K4'] = self.Body
+        self.inout['K5'] = self.NumberOfOccupants
+        self.inout['K6'] = self.MissionDuration
+        self.inout['K7'] = self.MaxPrintHeight
+
+        return self.specs.save(self.File_name)
 
 # Error Management #
 

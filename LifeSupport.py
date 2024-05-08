@@ -14,14 +14,12 @@ class LifeSupport(Base):
     Body = Input()
     NumberOfOccupants = Input()
     MissionDuration = Input()
-
+    Q_heat = Input()
 # Modules #
-
-    sys.path.append('livingsupport_parts')
 
     @Part
     def Power(self):
-        return Power(pass_down="Q_sys")
+        return Power(pass_down="Q_sys, Body,Q_heat")
 
     @Part
     def Water(self):

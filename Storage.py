@@ -6,10 +6,10 @@ class Storage(Base):
     NumberOfOccupants = Input(1)
     MissionDuration = Input(1)
     GeneralStorage = Input(10)
-
+    Cabinet_volume = 35
     @Attribute
     def food_storage(self):                         # [m^3] Volume required to store a year's worth of rations
-        food_storage_volume = 35 * self.NumberOfOccupants * self.MissionDuration
+        food_storage_volume = self.Cabinet_volume * self.NumberOfOccupants * self.MissionDuration
         return food_storage_volume
 
     @Attribute
