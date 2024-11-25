@@ -1,6 +1,11 @@
+from typing import Union, Any
 from parapy.core import *
 from parapy.geom import *
-from parapy.gui import display
+# from parapy.gui import display
+from parapy.webgui.core import Component, NodeType, get_assets_dir, get_asset_url
+from parapy.webgui.app_bar import AppBar
+from parapy.webgui.html import *
+from parapy.webgui import mui, layout, viewer, html, plotly
 from parapy.exchange.stl import STLWriter
 from parapy.exchange.step import STEPWriter
 from SciModule import Science
@@ -19,7 +24,6 @@ import openpyxl
 DIR = os.path.dirname(__file__)
 os.system("taskkill /f /im excel.exe")
 
-
 class Habitat(GeomBase):
 
     # Instantiating Excel template
@@ -28,10 +32,11 @@ class Habitat(GeomBase):
     inout = specs['Design Specification']
 
     # Inputs:
-    Body = Input(inout['K4'].value)                                 # Environment selection
-    NumberOfOccupants = Input(inout['K5'].value)                    # Number of occupants
-    MissionDuration = Input(inout['K6'].value)                      # Mission duration in years
-    MaxPrintHeight = Input(inout['K7'].value)                       # [m] Printable height of Hab
+    Body = Input('Mars')                                                # Environment selection
+    NumberOfOccupants = Input(1)                                        # Number of occupants
+    MissionDuration = Input(1)                                          # Mission duration in years
+    MaxPrintHeight = Input(21)                                          # [m] Printable height of Hab
+    DepoRate = Input(750)                                               # Regolith Deposition Rate [kg/hr]
 
     File_name = Input(str('Habitat_specs_Mars_01.xlsx'))
 # Naming and saving Excel #
@@ -99,7 +104,7 @@ class Habitat(GeomBase):
 
     @Part
     def habitat_geometry(self):                                     # Fuses airlock with main Hab body
-        return FusedSolid(shape_in=FusedSolid(shape_in=Box(length=self.airlock.airlock_dims[0],
+        return FusedSolid(shape_in=RotatedShape(shape_in=FusedSolid(shape_in=Box(length=self.airlock.airlock_dims[0],
                                                            width=self.airlock.airlock_dims[1],
                                                            height=self.airlock.airlock_dims[2],
                                                            position=XOY.translate('x', -1.5, 'z', 2.5)),
@@ -112,9 +117,14 @@ class Habitat(GeomBase):
                                                                          Face(island=ScaledCurve(curve_in=self.hab_profiles[0],
                                                                                                  reference_point=Point(0, 0, 3),
                                                                                                  factor=(self.life_support.Heating.t_min+5)/5))])),
-                          tool=Cylinder(radius=self.radii[0]*(self.life_support.Heating.t_min + 5)/5,
-                                        height=0.5,
-                                        position=XOY.translate('z', 2.5)))
+                                rotation_point=Point(0, 0, 0),
+                                vector=Vector(0, 0, 1),
+                                angle=m.radians(180)),
+
+                              tool=Cylinder(radius=self.radii[0]*(self.life_support.Heating.t_min + 5)/5,
+                                            height=0.5,
+                                            position=XOY.translate('z', 2.5))
+                            )
 
     @Part
     def hab_floors(self):
@@ -356,7 +366,244 @@ def generate_warning(warning_header, msg):
 
     messagebox.showwarning(warning_header, msg)
 
+### webGUI Development ###
+
+CustomHab = Habitat()
+class Habitect(Component):
+    def render(self) -> NodeType:
+        return layout.AppbarWithSidebar(
+            #theme={
+            #    'palette': {
+            #        'primary': {'main': '#d9a975'},
+            #        'background': {'main': '#eed', 'sidebar': '#d9a975'},
+            #        'action': {'selected': '#aa9a', 'hover': '#ccb'},
+            #    }
+            #},
+            title="Extraterrestrial Habitat Configurator",
+            logo_src=get_asset_url("habitect-high-resolution-logo-transparent.png"),
+            app_bar_content=layout.Box(h_align='right',
+                                       v_align='center',
+                                       height='100%'),
+        tabs = [
+            {
+                "label": "Home",
+                "icon": mui.Icon['home'],
+                "content": layout.Split(height='100%', weights=[0, 0, 1])[
+                                InputsPanel,
+                                mui.Divider(orientation='vertical'),
+                                viewer.Viewer(objects=CustomHab),
+                ],
+            },
+            {
+                "label": "Overview",
+                "icon": mui.Icon['assessment'],
+                "content": layout.Split(height='100%', weights=[1, 0, 0])[
+                                Piecharts,
+                                mui.Divider(orientation='vertical'),
+                                OutputDialogs
+                ]
+            }
+        ]
+        )
+
+class InputsPanel(Component):
+    def render(self) -> NodeType:
+        return layout.Box(orientation='vertical',
+                          gap='1em',
+                          style={'padding': '1em'})[
+            html.code['Environment'],
+                layout.SlotRadioButtons(CustomHab, 'Body', options=['Moon', 'Mars']),
+
+            mui.FormGroup[
+                mui.FormLabel["Number of Occupants"],
+                mui.Slider(min=1,
+                           max=5,
+                           valueLabelDisplay='auto',
+                           defaultValue=CustomHab.MissionDuration,
+                           onChange=self.update_occ)
+            ],
+
+            mui.FormGroup[
+                mui.FormLabel["Mission Duration [Years]"],
+                mui.Slider(min=1,
+                           max=5,
+                           valueLabelDisplay='auto',
+                           defaultValue=CustomHab.MissionDuration,
+                           onChange=self.update_dur)
+            ],
+
+            html.code['Maximum Print Height [m]'],
+                layout.SlotIntField(CustomHab, 'MaxPrintHeight'),
+
+            mui.Button(variant='contained',
+                       onClick=self.get_step)["Download .STEP file"],
+
+            mui.Button(variant='contained',
+                       onClick=self.get_stl)["Download .STL file"]
+        ]
+
+    def get_step(self, evt):
+        writer1 = STEPWriter([CustomHab.habitat_geometry])
+        assets_dir = get_assets_dir()
+        fname = os.path.join(assets_dir, "Habitat.step")
+
+        writer1.write(fname)
+
+    def get_stl(self, evt):
+        writer2 = STLWriter([CustomHab.habitat_geometry])
+        assets_dir = get_assets_dir()
+        fname = os.path.join(assets_dir, "Habitat.stl")
+
+        writer2.write(fname)
+
+    def update_occ(self,evt,value,idx):
+        CustomHab.NumberOfOccupants = value
+
+    def update_dur(self,evt,value,idx):
+        CustomHab.MissionDuration = value
+
+class OutputDialogs(Component):
+    def render(self) -> NodeType:
+        return layout.Box(orientation='vertical',
+                          gap='1em',
+                          style={'padding': '1em'})[
+            mui.Paper(style={'width': '400px', 'padding': '1em'}, variant='outlined')[
+                html.code['Printer Regolith Deposition Rate [kg/hr]'], layout.SlotIntField(
+                    CustomHab, 'DepoRate'),
+                mui.Typography[
+                    f"Estimated Print Time: {round((round(CustomHab.print_volume, 2) * self.RegolithDensity()) / (CustomHab.DepoRate * 24), 2)} Days"],
+                mui.Typography[
+                    f"Number of Solar Panels: {CustomHab.life_support.Power.get_power_generation[0]}"],
+                mui.Typography[
+                    f"Number of Nuclear Fission Reactors: {CustomHab.life_support.Power.get_power_generation[1]}"]
+            ],
+            mui.Paper(style={'width': '400px', 'padding': '1em'}, variant='outlined')[
+                mui.Typography[f"Geometric Overview"],
+                mui.Divider,
+                mui.Typography[f"Hab Wall Thickness: {round(CustomHab.life_support.Heating.t_min, 2)} m"],
+                mui.Typography[f"Floors: {CustomHab.build_height}"],
+                mui.Typography[f"Hab Height: {CustomHab.hab_height} m"],
+                mui.Typography[f"Base Radius: {CustomHab.base_radius} m"],
+                mui.Typography[f"Top Radius: {CustomHab.roof_radius} m"],
+                mui.Typography[f"Estimated Print Volume: {round(CustomHab.print_volume, 2)} m^3"]
+            ],
+            mui.Paper(style={'width': '400px', 'padding': '1em'}, variant='outlined')[
+                mui.Typography[f"Power Usage"],
+                mui.Divider,
+                mui.Typography[f"Science Module: {round(0.001 * CustomHab.science_module.get_science_power, 1)} kW"],
+                mui.Typography[
+                    f"Communications Module: {round(0.001 * CustomHab.communications.get_comms_power, 1)} kW"],
+                mui.Typography[f"Repair Module: {round(0.001 * CustomHab.repair_workshop.get_workshop_power, 1)} kW"],
+                mui.Typography[f"Airlock: {round(0.001 * CustomHab.airlock.get_airlock_power, 1)} kW"],
+                mui.Typography[f"Living Quarters: {round(0.001 * CustomHab.living_quarters.get_livquart_power, 1)} kW"],
+                mui.Typography[f"Life Support: {round(0.001 * CustomHab.life_support.get_lifesup_power, 1)} kW"],
+                mui.Typography[f"Heating: {round(0.001 * CustomHab.life_support.Heating.Q_heat, 1)} kW"],
+                mui.Divider,
+                mui.Typography[f"Total Power Consumption: {round(0.001 * (CustomHab.get_tot_power_req + CustomHab.life_support.Heating.Q_heat),2)} kW"]
+            ],
+            mui.Paper(style={'width': '400px', 'padding': '1em'}, variant='outlined')[
+                mui.Typography[f"Volume Distribution"],
+                mui.Divider,
+                mui.Typography[f"Science Module: {round(CustomHab.science_module.get_science_volume, 1)} m3"],
+                mui.Typography[f"Communications Module: {round(CustomHab.communications.get_comms_volume, 1)} m3"],
+                mui.Typography[f"Storage: {round(CustomHab.storage_module.get_storage_volume, 1)} m3"],
+                mui.Typography[f"Repair Module: {round(CustomHab.repair_workshop.get_workshop_volume, 1)} m3"],
+                mui.Typography[f"Airlock: {round(CustomHab.airlock.get_airlock_volume, 1)} m3"],
+                mui.Typography[f"Living Quarters: {round(CustomHab.living_quarters.get_livquart_volume, 1)} m3"],
+                mui.Typography[f"Life Support: {round(CustomHab.life_support.get_lifesup_volume, 1)} m3"],
+                mui.Divider,
+                mui.Typography[f"Total Habitat Volume: {CustomHab.get_tot_use_vol} m3"]
+            ],
+            mui.Paper(style={'width': '400px', 'padding': '1em'}, variant='outlined')[
+                mui.Typography[f"Life Support Data"],
+                mui.Divider,
+                mui.Typography[f"Oxygen Module: {round(0.001*CustomHab.life_support.Oxygen.get_oxygen_power, 1)} kW, " \
+                               f"{round(CustomHab.life_support.Oxygen.get_oxygen_volume, 1)} m3"],
+                mui.Typography[f"Water Module: {round(0.001 * CustomHab.life_support.Water.get_system_power, 1)} kW, " \
+                               f"{round(CustomHab.life_support.Water.get_system_volume, 1)} m3"],
+                mui.Typography[f"Food Module: {round(0.001 * CustomHab.life_support.Food.get_farm_power, 1)} kW, " \
+                               f"{round(CustomHab.life_support.Food.get_farm_volume, 1)} m3"]
+            ]
+        ]
+
+    def RegolithDensity(self):
+        if CustomHab.Body == "Moon":
+            return 2500
+        elif CustomHab.Body == "Mars":
+            return 1800
+
+class Piecharts(Component):
+    def render(self) -> NodeType:
+        TRACE_1 = {
+            "values": [CustomHab.science_module.get_science_power,
+                       CustomHab.communications.get_comms_power,
+                       CustomHab.repair_workshop.get_workshop_power,
+                       CustomHab.airlock.get_airlock_power,
+                       CustomHab.living_quarters.get_livquart_power,
+                       CustomHab.life_support.get_lifesup_power,
+                       round(CustomHab.life_support.Heating.Q_heat)],
+            "type": 'pie',
+            "labels": ["Science", "Comms", "Workshop", "Airlock", "Living Quarters", "Life Support", "Heating"],
+            "textinfo": "label+percent",
+            "textposition": 'outside',
+            "outsidetextorientation": 'radial',
+            "hole": 0.4,
+        }
+
+        TRACE_2 = {
+            "values": [CustomHab.science_module.get_science_volume,
+                       CustomHab.communications.get_comms_volume,
+                       CustomHab.storage_module.get_storage_volume,
+                       CustomHab.repair_workshop.get_workshop_volume,
+                       CustomHab.airlock.get_airlock_volume,
+                       CustomHab.living_quarters.get_livquart_volume,
+                       CustomHab.life_support.get_lifesup_volume],
+            "type": 'pie',
+            "labels": ["Science", "Comms", "Storage", "Workshop", "Airlock", "Living Quarters", "Life Support"],
+            "textinfo": "label+percent",
+            "textposition": 'outside',
+            "outsidetextorientation": 'radial',
+            "hole": 0.4,
+        }
+        return layout.Box(orientation='vertical',
+                          gap='1em',
+                          style={'padding': '1em'})[
+        plotly.Plot(
+            data=[TRACE_1],
+            layout={
+                "title": 'Power Consumption',
+                "annotations": [
+                    {
+                        "font": {"size": 20},
+                        "text": "Power",
+                        "showarrow": False
+                    }
+                ]
+            },
+            config={'displaylogo': False},
+            style={'height': '100%', 'width': '100%'},
+            useResizeHandler=True
+        ),
+
+        plotly.Plot(
+            data=[TRACE_2],
+            layout={
+                "title": 'Volume Distribution',
+                "annotations": [
+                    {
+                        "font": {"size": 20},
+                        "text": "Volume",
+                        "showarrow": False
+                    }
+                ]
+            },
+            config={'displaylogo': False},
+            style={'height': '100%', 'width': '100%'},
+            useResizeHandler=True
+        )
+        ]
+
 
 if __name__ == '__main__':
-    obj = Habitat(label='Habitat')
-    display(obj)
+    from parapy.webgui.core import display
+    display(Habitect, reload=True, assets_dir=DIR)
